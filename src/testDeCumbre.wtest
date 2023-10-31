@@ -1,0 +1,259 @@
+import participantes.*
+import cumbres.*
+import conocimientos.*
+import paises.*
+import actividades.*
+import empresas.*
+
+describe "Test de la primera etapa"{
+	const argentina = new Pais()
+	const brasil = new Pais()
+	const colombia = new Pais()
+	const coreaDelNorte = new Pais()
+	const coreaDelSur = new Pais()
+	
+	const juana = new Programador(pais=argentina, commits=600, conocimientos= #{css, html, programacionBasica})
+	const lucia = new Programador(pais=brasil, commits=800, conocimientos=#{programacionBasica, basesDeDatos})
+	const mariana = new Especialista(pais=argentina, commits=200, conocimientos=#{programacionBasica, instalacionLinux, objetos, disenioConObjetos})
+	const susana = new Especialista(pais=colombia, commits=1500, conocimientos=#{programacionBasica, objetos})
+	
+	
+	method initialize(){
+		cumbre.registrarIngreso(juana)
+		cumbre.registrarIngreso(lucia)
+		cumbre.registrarIngreso(mariana)
+		
+		coreaDelNorte.registrarConflicto(coreaDelSur)
+		coreaDelSur.registrarConflicto(coreaDelNorte)
+		
+		cumbre.registrarAuspiciante(argentina)
+		cumbre.registrarAuspiciante(colombia)
+		cumbre.registrarAuspiciante(coreaDelNorte)
+	}
+	
+	test "Países participantes con Lucía, Juana y Mariana en la cumbre"{
+		assert.equals(#{argentina,brasil}, cumbre.paisesDeParticipantes())
+	}
+	
+	test "Cantidad de participantes de Argentina en la cumbre en esta etapa"{
+		assert.equals(2, cumbre.participantesDeUnPais(argentina))
+	}
+	
+	test "Cantidad de participantes de Brasil en la cumbre en esta etapa"{
+		assert.equals(1, cumbre.participantesDeUnPais(brasil))
+	}
+	
+	test "Pais con más participantes en la cumbre en esta etapa"{
+		assert.equals(argentina, cumbre.paisConMasParticipantes())
+	}
+	
+	test "La cumbre es relevante en esta etapa"{
+		assert.that(cumbre.esRelevante())
+	}
+	
+	test "Si agregamos a Susana los países son Argentina, Brasil y Colombia"{
+		cumbre.registrarIngreso(susana)
+		assert.equals(#{argentina, brasil, colombia}, cumbre.paisesDeParticipantes())
+	}
+	
+	test "Con Susana el país con más participantes"{
+		cumbre.registrarIngreso(susana)
+		assert.equals(argentina, cumbre.paisConMasParticipantes())
+	}
+	
+	test "Con Susana la cumbre NO es relevante"{
+		cumbre.registrarIngreso(susana)
+		assert.notThat(cumbre.esRelevante())
+	}
+	
+	test "Corea del Sur es conflictivo porque está en conflicto con un auspiciante (Corea del Norte)"{
+		assert.that(cumbre.paisConflictivo(coreaDelSur))
+	}
+	
+	test "Paises Auspiciantes"{
+		assert.equals(#{argentina, colombia, coreaDelNorte}, cumbre.paisesAuspiciantes())
+	}
+	
+	test "Lucía es la única extranjera"{
+		cumbre.registrarIngreso(susana)
+		assert.equals(#{lucia}, cumbre.participantesExtranjeros())
+	}
+	
+}
+
+
+describe "Test con Restricciones"{
+	const argentina = new Pais()
+	const brasil = new Pais()
+	const colombia = new Pais()
+	const coreaDelNorte = new Pais()
+	const coreaDelSur = new Pais()
+	
+	const juana = new Programador(pais=argentina, commits=600, conocimientos= #{css, html, programacionBasica})
+	const lucia = new Programador(pais=brasil, commits=800, conocimientos=#{programacionBasica, basesDeDatos})
+	const mariana = new Especialista(pais=argentina, commits=200, conocimientos=#{programacionBasica, instalacionLinux, objetos, disenioConObjetos})
+	const susana = new Especialista(pais=colombia, commits=1500, conocimientos=#{programacionBasica, objetos})
+	
+	
+	method initialize(){
+		cumbre.registrarIngreso(juana)
+		cumbre.registrarIngreso(lucia)
+		cumbre.registrarIngreso(mariana)
+		cumbre.registrarIngreso(susana)
+		
+		coreaDelNorte.registrarConflicto(coreaDelSur)
+		coreaDelSur.registrarConflicto(coreaDelNorte)
+		
+		cumbre.registrarAuspiciante(argentina)
+		cumbre.registrarAuspiciante(colombia)
+		cumbre.registrarAuspiciante(coreaDelNorte)
+	}
+	
+	test "Un Programador con 200 commits NO cumple las condiciones de ingreso"{
+		const sofia = new Programador(pais=argentina, commits=200, conocimientos= #{css, html, programacionBasica})
+		assert.notThat(cumbre.puedeIngresar(sofia))
+	}
+	
+	test "Un Especialista con 200 commits SI cumple las condiciones de ingreso"{
+		const alfredo = new Especialista(pais=argentina, commits=200, conocimientos= #{css, html, programacionBasica, objetos})
+		assert.that(cumbre.puedeIngresar(alfredo))
+	}
+	
+	test "Un Programador con más de 300 commits Si cumple las condiciones de ingreso"{
+		assert.that(cumbre.puedeIngresar(juana))	
+	}
+	
+	test "Una Persona que no tenga conocimientos básicos de programación NO cumple las condiciones de ingreso"{
+		const ana = new Programador(pais=argentina, commits=200, conocimientos= #{css, html})
+		assert.notThat(cumbre.puedeIngresar(ana))
+	}
+	
+	test "Un Especialista que no tenga conocimientos en 'objetos' NO cumple las condiciones de ingreso"{
+		const antonio = new Programador(pais=argentina, commits=500, conocimientos= #{css, html})
+		assert.notThat(cumbre.puedeIngresar(antonio))
+	}
+	
+	test "Ingresar una persona que no cumple con las condiciones debe arrojar un error"{
+		const sofia = new Programador(pais=argentina, commits=200, conocimientos= #{css, html, programacionBasica})
+		assert.throwsException({cumbre.darIngreso(sofia)})
+	}
+	
+	test "Una Persona de un país conflictivo NO cumple las condiciones de ingreso"{
+		const yun = new Programador(pais=coreaDelSur, commits=800, conocimientos= #{css, html, programacionBasica})
+		assert.notThat(cumbre.puedeIngresar(yun))
+	}
+	
+	test "Una Persona de un país que no auspicia no puede ingresar si ya hay 2 personas del mismo país"{
+		const romina = new Programador(pais=brasil, commits=600, conocimientos= #{css, html, programacionBasica})
+		const igor = new Programador(pais=brasil, commits=600, conocimientos= #{css, html, programacionBasica})
+		cumbre.darIngreso(romina)
+		//De Brasil tenemos ingresadas a Lucía y a Romina
+		//por lo tanto Igor no podría ingresar
+		assert.notThat(cumbre.puedeIngresar(igor))
+	}	
+	
+	test "La cumbre es segura con los participantes actuales"{
+		assert.that(cumbre.esSegura())
+	}
+	
+	test "La cumbre no es segura si hay al menos un participante que no podía ingresar dentro"{
+		const yun = new Programador(pais=coreaDelSur, commits=800, conocimientos= #{css, html, programacionBasica})
+		cumbre.registrarIngreso(yun)
+		//Yun es de un país conflictivo, no debería estar en la cumbre
+		assert.notThat(cumbre.esSegura())
+	}
+	
+	
+	
+}
+
+describe "Test de Actividades"{
+	const argentina = new Pais()
+	const brasil = new Pais()
+	const colombia = new Pais()
+	const coreaDelNorte = new Pais()
+	const coreaDelSur = new Pais()
+	
+	const juana = new Programador(pais=argentina, commits=600, conocimientos= #{css, html, programacionBasica})
+	const lucia = new Programador(pais=brasil, commits=800, conocimientos=#{programacionBasica, basesDeDatos})
+	const mariana = new Especialista(pais=argentina, commits=200, conocimientos=#{programacionBasica, instalacionLinux, objetos, disenioConObjetos})
+	const susana = new Especialista(pais=colombia, commits=1500, conocimientos=#{programacionBasica, objetos})
+	
+	const act1 = new Actividad(tema=objetos,horas=3)
+	const act2 = new Actividad(tema=disenioConObjetos,horas=2)
+	const act3 = new Actividad(tema=basesDeDatos,horas=2)
+	
+	
+	method initialize(){
+		cumbre.registrarIngreso(juana)
+		cumbre.registrarIngreso(lucia)
+		cumbre.registrarIngreso(mariana)
+		cumbre.registrarIngreso(susana)
+		
+		coreaDelNorte.registrarConflicto(coreaDelSur)
+		coreaDelSur.registrarConflicto(coreaDelNorte)
+		
+		cumbre.registrarAuspiciante(argentina)
+		cumbre.registrarAuspiciante(colombia)
+		cumbre.registrarAuspiciante(coreaDelNorte)
+		
+		cumbre.registrarActividad(act1)
+		cumbre.registrarActividad(act2)
+		cumbre.registrarActividad(act3)
+	}
+	
+	test "Cantidad de Horas de Actividades en la Cumbre"{
+		assert.equals(7, cumbre.totalDeHorasActividades())
+	}
+	
+	test "Realizar actividad agrega el conocimiento en la persona"{
+		susana.realizarActividad(act3)
+		assert.that(susana.conocimientos().contains(basesDeDatos))
+	}
+	
+	test "Realizar actividad aumenta la cantidad de commits"{
+		juana.realizarActividad(act1)
+		//juana tenía 600 commits
+		//la actividad consta de 36 commits (12 commits * 3 horas)
+		assert.equals(636, juana.commits())
+	}
+	
+	test "Realizar actividad suma hora de capacitación a Programadores"{
+		juana.realizarActividad(act1)
+		assert.equals(3, juana.horasDeCapacitacion())
+	}
+}
+
+describe "Test de Gerente"{	
+	
+	const argentina = new Pais()
+	const brasil = new Pais()
+	const colombia = new Pais()
+	const venezuela = new Pais()
+	const ecuador = new Pais()
+	const chile = new Pais()
+	
+	const programAr = new Empresa(paises = #{argentina})
+	const latamPrograma = new Empresa(paises = #{argentina, brasil, colombia, venezuela, ecuador, chile} )
+	
+	const leonardo = new Gerente(pais=colombia, commits=1200, conocimientos= #{programacionBasica, basesDeDatos}, empresa=programAr)
+	const rafael = new Gerente(pais=colombia, commits=1200, conocimientos= #{programacionBasica, basesDeDatos, manejoDeGrupos}, empresa=latamPrograma)
+	
+	
+	test "Un gerente NO puede ingresar si no tiene conocimiento en 'manejo de grupos'"{
+		assert.notThat(cumbre.puedeIngresar(leonardo))
+	}
+	
+	test "Un gerente SI puede ingresar si tiene conocimiento en el 'manejo de grupos'"{		
+		assert.that(cumbre.puedeIngresar(rafael))
+	}
+	
+	test "Un gerente NO es Cape si NO pertenece a una empresa multinacional"{
+		assert.notThat(leonardo.esCape())
+	}
+	
+	test "Un gerente es Cape si pertenece a una empresa multinacional"{
+		assert.that(rafael.esCape())
+	}
+}
+
